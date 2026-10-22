@@ -1,7 +1,11 @@
 import os
+from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import create_engine, pool
+
+if context.config.config_file_name:
+    fileConfig(context.config.config_file_name)
 
 
 def _sqlalchemy_url() -> str:
