@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 
-from .conftest import balance_checked, finished, generate, ledger_kinds, wait_task
+from .helpers import balance_checked, finished, generate, ledger_kinds, wait_task
 
 
 async def test_late_completed_after_watchdog(api, db, providers, funded_user, provider_timeout):

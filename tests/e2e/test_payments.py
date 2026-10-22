@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 
-from .conftest import balance_checked, ledger_kinds, new_user_id, signed_post
+from .helpers import balance_checked, ledger_kinds, new_user_id, signed_post
 
 
 async def test_20_concurrent_identical_payment_webhooks_credit_once(api, db):
