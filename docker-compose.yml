@@ -1,0 +1,77 @@
+x-app: &app
+  build: .
+  image: token-fallback-engine:local
+
+x-env: &env
+  DATABASE_URL: postgresql://app:app@db:5432/app
+  WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-secret}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app", "-d", "app"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: alembic upgrade head
+    environment: *env
+    depends_on:
+      db: {condition: service_healthy}
+
+  app:
+    <<: *app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    environment:
+      <<: *env
+      PUBLIC_BASE_URL: http://app:8000
+      PROVIDER_ALPHA_URL: http://alpha:8000
+      PROVIDER_BETA_URL: http://beta:8000
+      PROVIDER_TIMEOUT: ${PROVIDER_TIMEOUT:-60}
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      alpha: {condition: service_started}
+      beta: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  alpha:
+    <<: *app
+    command: uvicorn fakeprovider.main:app --host 0.0.0.0 --port 8000
+    environment:
+      PROVIDER_NAME: alpha
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-secret}
+    ports: ["9001:8000"]
+
+  beta:
+    <<: *app
+    command: uvicorn fakeprovider.main:app --host 0.0.0.0 --port 8000
+    environment:
+      PROVIDER_NAME: beta
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-secret}
+    ports: ["9002:8000"]
+
+  # запуск: docker compose run --rm tests
+  tests:
+    <<: *app
+    profiles: [test]
+    command: pytest
+    environment:
+      <<: *env
+      SERVICE_URL: http://app:8000
+      ALPHA_URL: http://alpha:8000
+      BETA_URL: http://beta:8000
+    depends_on:
+      app: {condition: service_healthy}
