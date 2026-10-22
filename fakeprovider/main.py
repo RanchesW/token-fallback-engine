@@ -55,8 +55,13 @@ class TaskIn(BaseModel):
     client_ref: str | None = None
 
 
+def _default_behaviour() -> Behaviour:
+    # например PROVIDER_BEHAVIOUR='{"fail_rate": 0.3, "delay_max": 5}'
+    return Behaviour(**json.loads(os.environ.get("PROVIDER_BEHAVIOUR") or "{}"))
+
+
 app = FastAPI(title=f"fake provider {NAME}")
-behaviour = Behaviour()
+behaviour = _default_behaviour()
 jobs: dict[str, dict] = {}
 by_key: dict[str, str] = {}
 _background: set[asyncio.Task] = set()
@@ -177,7 +182,7 @@ async def put_config(changes: dict):
 @app.post("/_admin/reset")
 async def reset():
     global behaviour
-    behaviour = Behaviour()
+    behaviour = _default_behaviour()
     return behaviour
 
 
