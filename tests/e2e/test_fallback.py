@@ -18,7 +18,7 @@ async def test_first_leg_fails_task_completes_on_second(api, db, providers, fund
     assert await balance_checked(db, user_id) == 8
 
 
-async def test_moderation_on_video_without_skip_goes_on(api, providers, funded_user):
+async def test_technical_failure_on_video_goes_to_flagged_leg(api, providers, funded_user):
     # technical на beta: alpha можно (skip_on_moderation важен только после модерации)
     await providers.configure("beta", fail_rate=1, fail_type="technical")
     user_id = await funded_user(30)
